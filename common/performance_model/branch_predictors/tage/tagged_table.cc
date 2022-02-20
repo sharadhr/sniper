@@ -20,6 +20,9 @@ void TaggedTable::update(std::size_t index, bool final_prediction, bool alt_pred
 {
     if (alt_prediction != final_prediction)
         m_table[index].useful.update(final_prediction == actual);
+
+    // update prediction counter of table entry
+    m_table[index].counter.update(actual);
 }
 
 void TaggedTable::resetUsefulLsb()
