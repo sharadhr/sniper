@@ -25,6 +25,9 @@ TagePredictor::TagePredictor(const String &name, core_id_t core_id, UInt32 entri
           //                         .first;
           //             }}
 {
+    // Sleep so that debugger can be hooked in
+    // std::this_thread::sleep_for(std::chrono::seconds(10));
+
     // generate the geometric series
     std::generate_n(std::back_inserter(geometric_series), components - 1, [&alpha, &L_1, i = 1u]() mutable
     {
@@ -148,13 +151,14 @@ void TagePredictor::update(bool predicted, bool actual, bool indirect, IntPtr ip
     {
         tagged_components[main_provider_i].update(main_provider_entry_index, predicted, alt_prediction,
                                                   actual);
+
+        // reset useful MSB/LSB if necessary
+        if (branch_count % (512 * 1024) == 0)
+            tagged_components[main_provider_i].resetUsefulMsb();
+        else if (branch_count % (512 * 1024) == (256 * 1024))
+            tagged_components[main_provider_i].resetUsefulLsb();
     }
 
-    // reset useful MSB/LSB if necessary
-    if (branch_count % (512 * 1024) == 0)
-        tagged_components[main_provider_i].resetUsefulMsb();
-    else if (branch_count % (512 * 1024) == (256 * 1024))
-        tagged_components[main_provider_i].resetUsefulLsb();
 
     // on incorrect prediction, and if the provider was NOT using the longest history...
     if (predicted != actual && tagged_components.size() - main_provider_i > 1)
@@ -226,6 +230,7 @@ boost::dynamic_bitset<> TagePredictor::xorFoldNGroups(std::vector<dyn_bitset> &b
 
 std::vector<boost::dynamic_bitset<>> TagePredictor::xorFoldedResult(std::vector<dyn_bitset> &bit_groups, IntPtr ip)
 {
+    static auto mask{(1 << bit_groups[0].size()) - 1};
     std::vector<dyn_bitset> result{};
     std::generate_n(std::back_inserter(result), bit_groups.size(),
                     [i = 1, this, &ip, &bit_groups]() mutable
@@ -233,7 +238,8 @@ std::vector<boost::dynamic_bitset<>> TagePredictor::xorFoldedResult(std::vector<
                         if (ip)
                         {
                             std::vector<dyn_bitset> vec_with_pc{bit_groups};
-                            vec_with_pc.emplace_back(dyn_bitset{bit_groups[0].size(), ip});
+                            vec_with_pc.emplace_back(dyn_bitset{bit_groups[0].size(), ip & mask});
+                            mask << bit_groups[0].size();
                             return xorFoldNGroups(vec_with_pc, i++);
                         } else return xorFoldNGroups(bit_groups, i++);
                     });
