@@ -92,7 +92,7 @@ bool TagePredictor::predict(bool indirect, IntPtr ip, IntPtr target)
 
     // Finally, generate the predictions for the tagged components
     // The pair of bool is: [prediction, tag_hit]
-    std::vector<std::pair<bool, bool>> predictions{};
+    predictions.clear();
     std::generate_n(std::back_inserter(predictions), tagged_components.size(),
                     [&, i = 0]() mutable
                     {
@@ -148,13 +148,13 @@ void TagePredictor::update(bool predicted, bool actual, bool indirect, IntPtr ip
     {
         tagged_components[main_provider_i].update(main_provider_entry_index, predicted, alt_prediction,
                                                   actual);
-
-        // reset useful MSB/LSB if necessary
-        if (branch_count % (512 * 1024) == 0)
-            tagged_components[main_provider_i].resetUsefulMsb();
-        else if (branch_count % (512 * 1024) == (256 * 1024))
-            tagged_components[main_provider_i].resetUsefulLsb();
     }
+
+    // reset useful MSB/LSB if necessary
+    if (branch_count % (512 * 1024) == 0)
+        tagged_components[main_provider_i].resetUsefulMsb();
+    else if (branch_count % (512 * 1024) == (256 * 1024))
+        tagged_components[main_provider_i].resetUsefulLsb();
 
     // on incorrect prediction, and if the provider was NOT using the longest history...
     if (predicted != actual && tagged_components.size() - main_provider_i > 1)

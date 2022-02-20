@@ -52,6 +52,8 @@ private:
     std::vector<dyn_bitset> tag_csr1_groups{};
     std::vector<dyn_bitset> tag_csr2_groups{};
 
+    std::vector<std::pair<bool, bool>> predictions{};
+
     void shiftAllLeft(bool inserted);
     void shiftGroupsLeftAndSet(std::vector<dyn_bitset> &bit_groups, bool inserted) const;
 
