@@ -6,16 +6,11 @@
 
 #include <algorithm>
 #include <numeric>
+#include <chrono>
+#include <thread>
 #include "tage_predictor.h"
 #include "fixed_types.h"
 #include "simulator.h"
-
-bool TagePredictor::final_prediction{};
-bool TagePredictor::alt_prediction{};
-int TagePredictor::main_provider_i{};
-int TagePredictor::alt_provider_i{};
-std::size_t TagePredictor::main_provider_entry_index{};
-UInt64 TagePredictor::branch_count{};
 
 TagePredictor::TagePredictor(const String &name, core_id_t core_id, UInt32 entries, UInt8 components, UInt8 alpha, UInt8 L_1, UInt8 tag_width)
         : BranchPredictor(name, core_id),
@@ -36,34 +31,35 @@ TagePredictor::TagePredictor(const String &name, core_id_t core_id, UInt32 entri
         return i++ == 1 ? L_1 : static_cast<UInt32>(std::pow(alpha, i - 2) * L_1);
     });
     // we resize the history register to the *largest* value in the geometric series
-    global_history_register.resize(*geometric_series.end());
+    global_history_register = dyn_bitset{geometric_series.back()};
 
     auto ghr_size{global_history_register.size()};
 
     // now generate a vector of indexing groups with sizes index_bits,
     // and number GHR / index_bits
     std::generate_n(std::back_inserter(index_groups),
-                    ghr_size / entry_bits + (ghr_size % entry_bits == 0),
+                    (ghr_size / entry_bits) + (ghr_size % entry_bits == 0),
                     [&]()
                     { return dyn_bitset{entry_bits}; });
 
     // now generate the sizes for the CSR1 tag groups, with sizes tag_width,
     // and number GHR / tag_width
     std::generate_n(std::back_inserter(tag_csr1_groups),
-                    ghr_size / tag_width + (ghr_size % tag_width == 0),
+                    (ghr_size / tag_width) + (ghr_size % tag_width == 0),
                     [&]()
                     { return dyn_bitset{tag_width}; });
 
     // Finally, generate the sizes for the CSR2 tag groups, with sizes tag_width - 1,
     // and number GHR / (tag_width - 1)
     std::generate_n(std::back_inserter(tag_csr2_groups),
-                    ghr_size / (tag_width - 1u) + (ghr_size % tag_width == 0),
+                    (ghr_size / (tag_width - 1u)) + (ghr_size % tag_width == 0),
                     [&]()
                     { return dyn_bitset{tag_width - 1u}; });
 }
 
 bool TagePredictor::predict(bool indirect, IntPtr ip, IntPtr target)
 {
+    auto max_unsigned = std::numeric_limits<std::size_t>::max();
     // increment branch count; predict() is only called on encounter of a
     // branch instruction
     ++branch_count;
@@ -103,22 +99,21 @@ bool TagePredictor::predict(bool indirect, IntPtr ip, IntPtr target)
                         return tagged_components[i].predict(indices[i].to_ulong(), computed_tags[i]);
                     });
 
-    // get provider component
-    main_provider_i = tagged_components.size() - 1;
-    for (; main_provider_i >= 0; --main_provider_i)
+    // get provider component, start from longest history length
+    for (main_provider_i = tagged_components.size() - 1; main_provider_i != max_unsigned; --main_provider_i)
     {
         if (predictions[main_provider_i].second) break;
     }
 
     // if there is no hits, aka underflow to -1, return base prediction
-    if (main_provider_i == -1)
+    if (main_provider_i == max_unsigned)
     {
         alt_prediction = base_prediction;
         return base_prediction;
     }
 
     // get alternate provider; again, if -1, use base prediction
-    for (alt_provider_i = main_provider_i - 1; alt_provider_i >= 0; --alt_provider_i)
+    for (alt_provider_i = main_provider_i - 1; alt_provider_i != max_unsigned; --alt_provider_i)
     {
         if (predictions[alt_provider_i].second) break;
     }
@@ -126,7 +121,7 @@ bool TagePredictor::predict(bool indirect, IntPtr ip, IntPtr target)
     // Therefore, we have our final prediction and the alternate prediction
     final_prediction = predictions[main_provider_i].first;
     main_provider_entry_index = indices[main_provider_i].to_ulong();
-    alt_prediction = alt_provider_i >= 0 ? predictions[alt_provider_i].first : base_prediction;
+    alt_prediction = alt_provider_i != max_unsigned ? predictions[alt_provider_i].first : base_prediction;
 
     // combine the predictions with multiplexers and return the final prediction
     // final_prediction = std::accumulate(predictions.begin(), predictions.end(),
@@ -138,6 +133,7 @@ bool TagePredictor::predict(bool indirect, IntPtr ip, IntPtr target)
 
 void TagePredictor::update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target)
 {
+    auto max_unsigned = std::numeric_limits<std::size_t>::max();
     // update counters
     updateCounters(predicted, actual);
 
@@ -148,7 +144,7 @@ void TagePredictor::update(bool predicted, bool actual, bool indirect, IntPtr ip
     base_predictor.update(predicted, actual, indirect, ip, target);
 
     // update useful counter of provider component
-    if (main_provider_i >= 0)
+    if (main_provider_i != max_unsigned)
     {
         tagged_components[main_provider_i].update(main_provider_entry_index, predicted, alt_prediction,
                                                   actual);
@@ -181,7 +177,7 @@ void TagePredictor::update(bool predicted, bool actual, bool indirect, IntPtr ip
         {
             for (auto i{main_provider_i + 1}; i < tagged_components.size(); ++i)
             {
-                --tagged_components[j][main_provider_entry_index].useful;
+                --tagged_components[i][main_provider_entry_index].useful;
             }
         }
     }
@@ -209,7 +205,7 @@ void TagePredictor::shiftGroupsLeftAndSet(std::vector<dyn_bitset> &bit_groups, b
         // if most significant block, mask extra bits
         dyn_bitset mask{entry_bits, true};
 
-        if (i == 0) bit_groups[i] &= dyn_bitset{entry_bits, 1};
+        if (i == 0) bit_groups[i] &= dyn_bitset{bit_groups[i].size(), 1};
 
         // Set the LSB to the MSB of the next group...
         if (i < bit_groups.size() - 1) bit_groups[i][0] = bit_groups[i + 1][bit_groups[i].size() - 1];

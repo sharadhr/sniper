@@ -23,7 +23,8 @@ public:
      * @param alpha The ratio in the geometric series
      * @param L_1 The initial value in the geometric series
      */
-    explicit TagePredictor(const String &name, core_id_t core_id, UInt32 entries = 1024u, UInt8 components = 8u, UInt8 alpha = 2, UInt8 L_1 = 5,
+    explicit TagePredictor(const String &name, core_id_t core_id,
+                           UInt32 entries = 1024u, UInt8 components = 8u, UInt8 alpha = 2, UInt8 L_1 = 5,
                            UInt8 tag_width = 9u);
 
     bool predict(bool indirect, IntPtr ip, IntPtr target) override;
@@ -37,15 +38,15 @@ private:
 
     SimpleBimodalTable base_predictor{tagged_tables_entries << 2};
     std::vector<TaggedTable> tagged_components{7, TaggedTable{tagged_tables_entries, 9u}};
-    std::vector<UInt32> geometric_series{5, 10, 20, 40, 80, 160, 320};
+    std::vector<UInt32> geometric_series{};
 
     dyn_bitset global_history_register{};
-    static bool final_prediction;
-    static bool alt_prediction;
-    static int main_provider_i;
-    static int alt_provider_i;
-    static std::size_t main_provider_entry_index;
-    static UInt64 branch_count;
+    bool final_prediction{};
+    bool alt_prediction{};
+    std::size_t main_provider_i{};
+    std::size_t alt_provider_i{};
+    std::size_t main_provider_entry_index{};
+    UInt64 branch_count{};
 
     std::vector<dyn_bitset> index_groups{};
     std::vector<dyn_bitset> tag_csr1_groups{};

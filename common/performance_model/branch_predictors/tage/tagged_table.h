@@ -45,7 +45,7 @@ public:
     void resetUsefulMsb();
 
 private:
-    std::vector<TaggedEntry> m_table{256};
+    std::vector<TaggedEntry> m_table{1024u};
 };
 
 
