@@ -9,17 +9,17 @@ class BranchPredictor
 {
 public:
    BranchPredictor();
-   BranchPredictor(String name, core_id_t core_id);
+   BranchPredictor(const String& name, core_id_t core_id);
    virtual ~BranchPredictor();
 
    virtual bool predict(bool indirect, IntPtr ip, IntPtr target) = 0;
    virtual void update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target) = 0;
 
-   UInt64 getMispredictPenalty();
+   static UInt64 getMispredictPenalty();
    static BranchPredictor* create(core_id_t core_id);
 
-   UInt64 getNumCorrectPredictions() { return m_correct_predictions; }
-   UInt64 getNumIncorrectPredictions() { return m_incorrect_predictions; }
+   [[nodiscard]] UInt64 getNumCorrectPredictions() const { return m_correct_predictions; }
+   [[nodiscard]] UInt64 getNumIncorrectPredictions() const { return m_incorrect_predictions; }
 
    void resetCounters();
 

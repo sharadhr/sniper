@@ -40,7 +40,7 @@ bool PentiumMBranchPredictor::predict(bool indirect, IntPtr ip, IntPtr target)
    {
       result = bimodal_out;
    }
-   if (result == true)
+   if (result)
    {
       result = ibtb.predict(indirect,ip,target);
    }

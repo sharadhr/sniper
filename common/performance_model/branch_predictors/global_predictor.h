@@ -21,9 +21,9 @@ public:
    {
    }
 
-   bool predict(bool indirect, IntPtr ip, IntPtr target) { LOG_PRINT_ERROR("Need pir"); }
-   BranchPredictorReturnValue lookup(IntPtr ip, IntPtr target) { LOG_PRINT_ERROR("Need pir"); }
-   void update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target) { LOG_PRINT_ERROR("Need pir"); }
+   bool predict(bool indirect, IntPtr ip, IntPtr target) override { LOG_PRINT_ERROR("Need pir") }
+   static BranchPredictorReturnValue lookup(IntPtr ip, IntPtr target) { LOG_PRINT_ERROR("Need pir") }
+   void update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target) override { LOG_PRINT_ERROR("Need pir") }
 
    bool predict(bool indirect, IntPtr ip, IntPtr target, IntPtr pir)
    {

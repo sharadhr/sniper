@@ -8,7 +8,7 @@ LIBS = ../libdecoder.a ../../capstone/libcapstone.a -lstdc++ -lxed
 all: test_x86 test_arm
 
 %.o: %.cc
-	$(CXX) -std=c++11 -c -o $@ $< $(CFLAGS)
+	$(CXX) -std=c++14 -c -o $@ $< $(CFLAGS)
 
 test_x86: test_x86.o
 	$(CXX) $(LFLAGS) -o $@ $^ $(LIBS)

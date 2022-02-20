@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     bc \
     bison \
     curl \
+    cmake \
     device-tree-compiler \
     flex \
     gawk \
@@ -56,3 +57,4 @@ RUN apt-get update && apt-get install -y \
     g++-9 \
     vim \
  && rm -rf /var/lib/apt/lists/*
+ENV LC_ALL=C

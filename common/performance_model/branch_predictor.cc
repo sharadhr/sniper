@@ -2,6 +2,7 @@
 #include "branch_predictor.h"
 #include "one_bit_branch_predictor.h"
 #include "pentium_m_branch_predictor.h"
+#include "tage/tage_predictor.h"
 #include "a53branchpredictor.h"
 #include "config.hpp"
 #include "stats.h"
@@ -12,7 +13,7 @@ BranchPredictor::BranchPredictor()
 {
 }
 
-BranchPredictor::BranchPredictor(String name, core_id_t core_id)
+BranchPredictor::BranchPredictor(const String& name, core_id_t core_id)
    : m_correct_predictions(0)
    , m_incorrect_predictions(0)
 {
@@ -20,8 +21,7 @@ BranchPredictor::BranchPredictor(String name, core_id_t core_id)
   registerStatsMetric(name, core_id, "num-incorrect", &m_incorrect_predictions);
 }
 
-BranchPredictor::~BranchPredictor()
-{ }
+BranchPredictor::~BranchPredictor() = default;
 
 UInt64 BranchPredictor::m_mispredict_penalty;
 
@@ -37,7 +37,7 @@ BranchPredictor* BranchPredictor::create(core_id_t core_id)
       String type = cfg->getStringArray("perf_model/branch_predictor/type", core_id);
       if (type == "none")
       {
-         return 0;
+         return nullptr;
       }
       else if (type == "one_bit")
       {
@@ -48,19 +48,22 @@ BranchPredictor* BranchPredictor::create(core_id_t core_id)
       {
          return new PentiumMBranchPredictor("branch_predictor", core_id);
       }
-      else if (type == "a53") {
+      else if (type == "a53")
+      {
           return new A53BranchPredictor("branch_predictor", core_id);
+      }
+      else if (type == "tage")
+      {
+          return new TagePredictor("branch_predictor", core_id);
       }
       else
       {
-         LOG_PRINT_ERROR("Invalid branch predictor type.");
-         return 0;
+         LOG_PRINT_ERROR("Invalid branch predictor type.")
       }
    }
    catch (...)
    {
-      LOG_PRINT_ERROR("Config info not available while constructing branch predictor.");
-      return 0;
+      LOG_PRINT_ERROR("Config info not available while constructing branch predictor.")
    }
 }
 

@@ -5,7 +5,7 @@ default: qsim-frontend
 
 CXX ?= g++
 CPPFLAGS = -I.. -I. -I../../sift -I$(QSIM_PREFIX)/include -I$(QSIM_PREFIX)/distorm/ 
-CXXFLAGS = -g -c -Wall -Wextra -Wcast-align -Wno-unused-parameter -Wno-unknown-pragmas -std=c++11 -fno-strict-aliasing
+CXXFLAGS = -g -c -Wall -Wextra -Wcast-align -Wno-unused-parameter -Wno-unknown-pragmas -std=c++2a -fno-strict-aliasing
 LINKER?=${CXX}
 #CXXFLAGS += -std=c++0x -Wall -Wno-unknown-pragmas $(DBG) $(OPT_CFLAGS) $(TOOL_CXXFLAGS) -I.. -I../../common/misc -I../../sift
 LDFLAGS += -L.. -L../../sift -L ../../lib -L$(QSIM_PREFIX)/lib -lqsim -ldl -lsift -lcarbon_sim -lz -lrt $(QSIM_PREFIX)/distorm/distorm64.a -lcapstone

@@ -1,7 +1,7 @@
 #ifndef SATURATING_PREDICTOR_H
 #define SATURATING_PREDICTOR_H
 
-#include <stdint.h>
+#include <cstdint>
 #include "fixed_types.h"
 
 // From http://www.josuttis.com/tmplbook/meta/pow3.hpp.html
@@ -24,7 +24,7 @@ class SaturatingPredictor {
 
 public:
 
-   SaturatingPredictor(UInt32 initial_value)
+   explicit SaturatingPredictor(UInt32 initial_value = 0)
    {
       m_counter = initial_value;
    }
@@ -34,7 +34,7 @@ public:
       return (m_counter >= 0);
    }
 
-   void reset(bool prediction = 0)
+   void reset(bool prediction = false)
    {
       if (prediction)
       {
@@ -63,6 +63,17 @@ public:
          // Move towards not-taken
          --(*this);
       }
+   }
+
+   // ONLY works if 2-bit; This late, I can't be bothered to generalise this
+   void resetMsb()
+   {
+       m_counter &= 0b01;
+   }
+
+   void resetLsb()
+   {
+       m_counter &= 0b10;
    }
 
    SaturatingPredictor& operator++()
@@ -95,6 +106,11 @@ public:
       cout << " New val = " << (int) m_counter << endl;
 #endif
       return *this;
+   }
+
+   bool operator==(SaturatingPredictor<n> const& other) const
+   {
+       return m_counter == other.m_counter;
    }
 
 private:

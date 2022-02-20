@@ -11,9 +11,9 @@ class SimpleBimodalTable : BranchPredictor
 
 public:
 
-   SimpleBimodalTable(UInt32 entries)
+   explicit SimpleBimodalTable(UInt32 entries)
       : m_num_entries(entries)
-      , m_table(entries, 0)
+      , m_table{entries, SaturatingPredictor<2>{}}
    {
       reset();
       m_mask = 0;
@@ -23,13 +23,13 @@ public:
       }
    }
 
-   bool predict(bool indirect, IntPtr ip, IntPtr target)
+   bool predict(bool indirect, IntPtr ip, IntPtr target) override
    {
       UInt32 index = ip & m_mask;
       return (m_table[index].predict());
    }
 
-   void update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target)
+   void update(bool predicted, bool actual, bool indirect, IntPtr ip, IntPtr target) override
    {
       UInt32 index = ip & m_mask;
       if (actual)
@@ -49,21 +49,20 @@ public:
       }
    }
 
-private:
+    template<typename Addr>
+    static Addr ilog2(Addr n)
+    {
+        Addr i;
+        for(i=0;n>0;n>>=1,i++) {}
+        return i-1;
+    }
 
-   template<typename Addr>
-   Addr ilog2(Addr n)
-   {
-      Addr i;
-      for(i=0;n>0;n>>=1,i++) {}
-      return i-1;
-   }
 
 private:
 
    UInt32 m_num_entries;
    IntPtr m_mask;
-   std::vector<SaturatingPredictor<2> > m_table;
+   std::vector<SaturatingPredictor<2>> m_table;
 
 };
 

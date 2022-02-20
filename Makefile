@@ -15,7 +15,7 @@ SIM_TARGETS=$(LIB_DECODER) $(LIB_CARBON) $(LIB_SIFT) $(LIB_PIN_SIM) $(LIB_FOLLOW
 # Remake LIB_CARBON on each make invocation, as only its Makefile knows if it needs to be rebuilt
 .PHONY: $(LIB_CARBON)
 
-all: message dependencies $(SIM_TARGETS) configscripts
+.DEFAULT all: message dependencies $(SIM_TARGETS) configscripts
 
 include common/Makefile.common
 
